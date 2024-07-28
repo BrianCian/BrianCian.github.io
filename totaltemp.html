@@ -2,9 +2,7 @@
 <br>
 <select id="selectButton"></select>
 <br>
-<h1>Average Global Temperature Change Over Time</h1>
-<!-- Initialize a select button -->
-
+<h1>Global Temperature Change Over Time</h1>
 <div id="container"></div>
 <script src="https://d3js.org/d3.v7.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.5.1/d3-annotation.js"></script>
@@ -20,14 +18,18 @@ const marginBottom = 30;
 const marginLeft = 60;
 
 
-
 let data = await d3.csv('https://BrianCian.github.io/avgtemp.csv').then(function(data) {
     // Declare the x (horizontal position) scale.
     data.columns = data.columns.splice(0,2);
     data = data.splice(10,161);
+    data[160].Anomaly = 15.5;
+
+    for (let i = data.length-2; i > -1; i--) {
+        data[i].Anomaly = (Number(data[i+1].Anomaly - Number(data[i].Anomaly))).toFixed(3);
+    }
 
     // List of groups (here I have one group per column)
-    const allGroup = ["Temperature Change", "Total Temperature", "Recent Years of Increasing Heat"]
+    const allGroup = ["Total Temperature", "Temperature Change", "Recent Years of Increasing Heat"]
     
     // add the options to the button
     d3.select("#selectButton")
@@ -37,14 +39,13 @@ let data = await d3.csv('https://BrianCian.github.io/avgtemp.csv').then(function
         .append('option')
       .text(function (d) { return d; }) // text showed in the menu
       .attr("value", function (d) { return d; }) // corresponding value returned by the button
-
     const x = d3.scaleLinear()
         .domain([1860, 2020])
         .range([marginLeft, width - marginRight]).nice();
 
     // Declare the y (vertical position) scale.
     const y = d3.scaleLinear()
-        .domain([-.75, 1.5])
+        .domain([-7, 16])
         .range([height - marginBottom, marginTop]).nice();
 
     // Create the SVG container.
@@ -75,7 +76,7 @@ let data = await d3.csv('https://BrianCian.github.io/avgtemp.csv').then(function
           .attr("y", 10)
           .attr("fill", "currentColor")
           .attr("text-anchor", "start")
-          .text("↑ Temperature Change (°C)"));
+          .text("↑ Temperature (°C)"));
 
     const line = d3.line()
       .x(d => x(d.Year))
@@ -108,7 +109,7 @@ let data = await d3.csv('https://BrianCian.github.io/avgtemp.csv').then(function
         .join("text")
         .call(text => text
             .selectAll("tspan")
-            .data(['Year: ' + data[i].Year, 'Temp(°C): ' + data[i].Anomaly])
+            .data(['Year: ' + data[i].Year, 'Temp(C): ' + data[i].Anomaly])
             .join("tspan")
             .attr("x", 0)
             .attr("y", (_, i) => `${i * 1.1}em`)
@@ -131,87 +132,18 @@ let data = await d3.csv('https://BrianCian.github.io/avgtemp.csv').then(function
 
     // Append the SVG element.
     container.append(svg.node());
-    const type = d3.annotationLabel
-
-    const annotations = [{
-    note: {
-        label: "2020 had the highest increase at 0.93°C",
-        bgPadding: 20,
-        title: "New Peak!"
-    },
-    connector: {
-      end: "arrow",        // none, or arrow or dot
-      type: "Line",       // Line or curve
-      lineType : "horizontal"
-    },
-    //can use x, y directly instead of data
-    data: data,
-    className: "show-bg",
-    x: width-10,
-    y: 115,
-    dy: -10,
-    dx: 10
-    },
-    {
-    note: {
-        label: "1909 had the biggest drop at -0.46°C",
-        title: "Brrr!"
-    },
-    connector: {
-      end: "arrow",        // none, or arrow or dot
-      type: "Line",       // Line or curve
-      lineType : "vertical"
-    },
-    //can use x, y directly instead of data
-    data: data,
-    className: "show-bg",
-    x: width/3+8,
-    y: 320,
-    dy: -100,
-    dx: -10
-    },
-    {
-    note: {
-        label: "1976 was the last time temperatures dropped",
-        bgPadding: 20,
-        title: "Rising Heat!"
-    },
-    connector: {
-      end: "arrow",        // none, or arrow or dot
-      type: "Line",       // Line or curve
-      lineType : "horizontal"
-    },
-    //can use x, y directly instead of data
-    data: data,
-    className: "show-bg",
-    x: width/2+240,
-    y: 270,
-    dy: 10,
-    dx: 100
-    }]
-
-
-
-    const makeAnnotations = d3.annotation()
-    .annotations(annotations)
-
-    d3.select("svg")
-    .append("g")
-    .attr("class", "annotation-group")
-    .call(makeAnnotations);
         
 })
-// When the button is changed, run the updateChart function
+
 d3.select("#selectButton").on("change", function(event,d) {
             // recover the option that has been chosen
             const selectedOption = d3.select(this).property("value")
             if (selectedOption == "Temperature Change") {
-
+                document.location.href = 'index.html';
             } else if (selectedOption == "Total Temperature") {            
-                document.location.href = 'totaltemp.html';
+
             } else {
                 document.location.href = 'barchart.html';
             }
         })
-
 </script>
