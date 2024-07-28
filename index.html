@@ -13,8 +13,9 @@ const marginBottom = 30;
 const marginLeft = 40;
 
 
-d3.csv('avgtemp.csv', function(data) {
+let data = await d3.csv('https://BrianCian.github.io/avgtemp.csv').then(function(data) {
     // Declare the x (horizontal position) scale.
+    console.log(data)
     const x = d3.scaleLinear()
         .domain([new Date("2023-01-01"), new Date("2024-01-01")])
         .range([marginLeft, width - marginRight]);
