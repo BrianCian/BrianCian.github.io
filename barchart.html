@@ -35,44 +35,35 @@ let data = await d3.csv('https://BrianCian.github.io/avgtemp.csv').then(function
       .text(function (d) { return d; }) // text showed in the menu
       .attr("value", function (d) { return d; }) // corresponding value returned by the button
     // Declare the x (horizontal position) scale.
-  const x = d3.scaleBand()
-      .domain(d3.groupSort(data, ([d]) => d.Year, (d) => d.Year)) // descending frequency
-      .range([marginLeft, width - marginRight])
-      .padding(0.1);
-  
-  // Declare the y (vertical position) scale.
-  const y = d3.scaleLinear()
-      .domain([0, d3.max(data, (d) => d.Anomaly)])
-      .range([height - marginBottom, marginTop]);
+  const x = d3.scaleLinear()
+        .domain([1977, 2020])
+        .range([marginLeft, width - marginRight]);
 
-  // Create the SVG container.
-  const svg = d3.create("svg")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", [0, 0, width, height])
-      .attr("style", "max-width: 100%; height: auto;");
+    // Declare the y (vertical position) scale.
+    const y = d3.scaleLinear()
+        .domain([0, 1])
+        .range([height - marginBottom, marginTop]).nice();
 
-  // Add a rect for each bar.
-  svg.append("g")
-      .attr("fill", "steelblue")
-    .selectAll()
-    .data(data)
-    .join("rect")
-      .attr("x", (d) => x(d.Year))
-      .attr("y", (d) => y(d.Anomaly))
-      .attr("height", (d) => y(0) - y(d.Anomaly))
-      .attr("width", x.bandwidth());
+    // Create the SVG container.
+    const svg = d3.create("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .style("overflow", "visible")
+        .on("pointerenter pointermove", pointermoved)
+        .on("pointerleave", pointerleft)
+        .on("touchstart", event => event.preventDefault());;
 
-  // Add the x-axis and label.
-  svg.append("g")
-      .attr("transform", `translate(0,${height - marginBottom})`)
-      .call(d3.axisBottom(x).tickSizeOuter(0));
+    // Add the x-axis.
+    svg.append("g")
+        .attr("transform", `translate(0,${height - marginBottom})`)
+        .call(d3.axisBottom(x)
+        .tickFormat(d3.format("d")));
 
-  // Add the y-axis and label, and remove the domain line.
-  svg.append("g")
-      .attr("transform", `translate(${marginLeft},0)`)
-      .call(d3.axisLeft(y))
-      .call(g => g.select(".domain").remove())
+    // Add the y-axis.
+    svg.append("g")
+        .attr("transform", `translate(${marginLeft},0)`)
+        .call(d3.axisLeft(y))
+        .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").clone()
           .attr("x2", width - marginLeft - marginRight)
           .attr("stroke-opacity", 0.1))
@@ -83,6 +74,55 @@ let data = await d3.csv('https://BrianCian.github.io/avgtemp.csv').then(function
           .attr("text-anchor", "start")
           .text("↑ Temperature Change (°C)"));
 
+    const line = d3.line()
+      .x(d => x(d.Year))
+      .y(d => y(d.Anomaly));
+
+    svg.append('g').append("path")
+        .attr("fill", "none")
+      .attr("stroke", "steelblue")
+      .attr("stroke-width", 1.5)
+      .attr("d", line(data));
+
+    const tooltip = svg.append("g");
+
+
+    // Add the event listeners that show or hide the tooltip.
+    const bisect = d3.bisector(d => d.Year).center;
+    function pointermoved(event) {
+        const i = bisect(data, x.invert(d3.pointer(event)[0]));
+        tooltip.style("display", null);
+        tooltip.attr("transform", `translate(${x(data[i].Year)},${y(data[i].Anomaly)})`);
+
+        const path = tooltip.selectAll("path")
+        .data([,])
+        .join("path")
+            .attr("fill", "white")
+            .attr("stroke", "black");
+
+        const text = tooltip.selectAll("text")
+        .data([,])
+        .join("text")
+        .call(text => text
+            .selectAll("tspan")
+            .data(['Year: ' + data[i].Year, 'Temp(°C): ' + data[i].Anomaly])
+            .join("tspan")
+            .attr("x", 0)
+            .attr("y", (_, i) => `${i * 1.1}em`)
+            .attr("font-weight", (_, i) => i ? null : "bold")
+            .text(d => d));
+
+        size(text, path);
+    }
+
+    function pointerleft() {
+        tooltip.style("display", "none");
+    }
+
+    function size(text, path) {
+        const {x, y, width: w, height: h} = text.node().getBBox();
+        text.attr("transform", `translate(${-w / 2},${15 - y})`);
+        path.attr("d", `M${-w / 2 - 10},5H-5l5,-5l5,5H${w / 2 + 10}v${h + 20}h-${w + 20}z`);}
     // Append the SVG element.
     container.append(svg.node());
 })
